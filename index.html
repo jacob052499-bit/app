@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VERTEX - AI 理財旗艦版</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- TradingView Advanced Chart -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="avatar" id="header-avatar">
+                    <img src="https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=200&auto=format&fit=crop" alt="Premium Avatar">
+                </div>
+                <div class="greeting">
+                    <span class="greeting-text" data-i18n="header_greeting">尊榮交易員，</span>
+                    <h1 class="user-name" id="header-username">VIP 訪客</h1>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="ws-status" id="ws-status"><span class="pulse"></span> <span data-i18n="live_feed">專線即時報價</span></div>
+            </div>
+        </header>
+
+        <!-- Ticker Tape Widget (Global Prices) -->
+        <div class="tradingview-widget-container" style="height: 40px; margin-bottom: 20px;">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+            {
+            "symbols": [ 
+                {"proName": "BINANCE:BTCUSDT", "title": "Bitcoin"}, 
+                {"proName": "BINANCE:ETHUSDT", "title": "Ethereum"}, 
+                {"proName": "OANDA:EURUSD", "title": "EUR/USD"}, 
+                {"proName": "OANDA:XAUUSD", "title": "Gold"}, 
+                {"proName": "TVC:NDX", "title": "Nasdaq 100"}, 
+                {"proName": "TWSE:2330", "title": "TSMC"} 
+            ],
+            "showSymbolLogo": true, "isTransparent": true, "displayMode": "adaptive", "colorTheme": "dark", "locale": "zh_TW"
+            }
+            </script>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- ================= VIEW: HOME ================= -->
+            <div id="view-home" class="view active">
+                <section class="card glass-card portfolio-card">
+                    <div class="portfolio-header">
+                        <h2 style="color: var(--primary-color);" data-i18n="equity_title">帳戶總資產 (Equity)</h2>
+                    </div>
+                    <div class="balance-container">
+                        <h1 class="balance" id="home-balance">$ 0.00</h1>
+                        <div class="pnl positive" id="home-floating-pnl">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                            <span>+$ 0.00 (0.00%)</span>
+                        </div>
+                        <span class="pnl-period" data-i18n="float_pnl">浮動綜合損益</span>
+                    </div>
+                    
+                    <div style="margin-top:24px; text-align:center;">
+                        <button class="primary-btn-sm" style="width: 100%; border-radius: 12px; padding: 14px; font-size: 1rem; font-weight:600;" onclick="openAddPositionModal()">
+                            <i class="fa-solid fa-gem" style="margin-right:8px;"></i> <span data-i18n="btn_create_pos">建立倉位</span>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="quick-actions" style="margin-top:20px;">
+                    <div class="action-btn" data-target="view-screener">
+                        <div class="action-icon primary"><i class="fa-solid fa-chart-line"></i></div>
+                        <span data-i18n="action_charts">走勢大盤</span>
+                    </div>
+                    <div class="action-btn" data-target="view-risk">
+                        <div class="action-icon secondary"><i class="fa-solid fa-scale-balanced"></i></div>
+                        <span data-i18n="action_risk">風控</span>
+                    </div>
+                    <div class="action-btn" data-target="view-portfolio">
+                        <div class="action-icon warning"><i class="fa-solid fa-briefcase"></i></div>
+                        <span data-i18n="action_pos">倉位</span>
+                    </div>
+                    <div class="action-btn" data-target="view-journal">
+                        <div class="action-icon success"><i class="fa-solid fa-feather-pointed"></i></div>
+                        <span data-i18n="action_journal">交易日誌</span>
+                    </div>
+                </section>
+
+                <!-- Custom Asset Categories -->
+                <section class="card glass-card" style="margin-top: 25px; padding: 15px;">
+                    <div style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px; overflow-x:auto;">
+                        <button class="home-tab-btn active" onclick="switchHomeTab('crypto', this)" data-i18n="tab_crypto" style="flex:1; padding:8px; border-radius:8px; background:rgba(212,175,55,0.15); color:var(--primary-color); border:1px solid var(--primary-color); cursor:pointer;">數位資產</button>
+                        <button class="home-tab-btn" onclick="switchHomeTab('index', this)" data-i18n="tab_index" style="flex:1; padding:8px; border-radius:8px; background:transparent; color:var(--text-muted); border:1px solid transparent; cursor:pointer;">全球股指</button>
+                        <button class="home-tab-btn" onclick="switchHomeTab('forex', this)" data-i18n="tab_forex" style="flex:1; padding:8px; border-radius:8px; background:transparent; color:var(--text-muted); border:1px solid transparent; cursor:pointer;">外匯金屬</button>
+                    </div>
+                    <div class="stock-list" id="home-asset-list" style="max-height: 350px; overflow-y: auto; padding-right: 5px;">
+                        <!-- JS Dynamically rendered -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- ================= VIEW: PORTFOLIO ================= -->
+            <div id="view-portfolio" class="view">
+                <div class="section-header" style="justify-content:center;">
+                    <h2 style="color:var(--primary-color);" data-i18n="title_pos">尊榮持倉庫存</h2>
+                </div>
+                <button class="primary-btn" style="margin-bottom: 20px; text-transform:uppercase; letter-spacing:1px;" onclick="openAddPositionModal()">
+                    + <span data-i18n="btn_create_pos2">建立新倉位紀錄</span>
+                </button>
+
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary-color);"></i> <span data-i18n="pos_info">由於採用官方最高規報價源，全球資產盈虧請點擊小筆圖示手動填入最新市價，確保最高精確度。</span>
+                </div>
+                <div class="stock-list" id="custom-positions-list">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- ================= VIEW: SCREENER (TradingView Advanced Chart) ================= -->
+            <div id="view-screener" class="view">
+                <div class="section-header" style="margin-bottom: 12px;">
+                    <h2 style="color:var(--primary-color); font-weight:600;"><i class="fa-solid fa-chart-area"></i> <span data-i18n="title_charts">旗艦專屬全圖表</span></h2>
+                </div>
+                <div class="card" style="padding: 0; height: 68vh; border-radius: 12px; overflow: hidden; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,1);">
+                    <div id="tv-screener-chart" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: JOURNAL ================= -->
+            <div id="view-journal" class="view">
+                <div class="section-header">
+                    <h2 style="color:var(--primary-color);" data-i18n="title_journal">交易日誌</h2>
+                    <button class="primary-btn-sm" style="border-radius:20px;" onclick="document.getElementById('journal-modal').style.display='flex'">+ <span data-i18n="btn_new_journal">新增紀錄</span></button>
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; margin-bottom: 15px;">
+                    <select id="j-filter" class="styled-input" style="padding: 8px; width: 140px; font-size:0.85rem;" onchange="renderJournalList()">
+                        <option value="all" data-i18n="filter_all">全部 (All)</option>
+                        <option value="7" data-i18n="filter_7d">近 7 天</option>
+                        <option value="30" data-i18n="filter_30d">近 30 天</option>
+                        <option value="120" data-i18n="filter_4m">近 4 個月</option>
+                        <option value="365" data-i18n="filter_1y">近 1 年</option>
+                    </select>
+                    <button class="primary-btn-sm" style="background:var(--success-color); color:#fff; border-radius:8px;" onclick="exportJournalsCSV()">
+                        <i class="fa-solid fa-file-excel"></i> <span data-i18n="btn_export">匯出 CSV</span>
+                    </button>
+                </div>
+
+                <div class="post-list" id="journal-list">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- ================= VIEW: RISK ================= -->
+            <div id="view-risk" class="view">
+                <div class="section-header" style="justify-content:center;">
+                    <h2 style="color:var(--primary-color); letter-spacing: 1px;" data-i18n="title_risk">實盤風控中心</h2>
+                </div>
+                
+                <!-- Lot Conversion Calculator -->
+                <div class="card glass-card form-card" style="margin-bottom: 20px;">
+                    <h3 style="color:#FFF;"><i class="fa-solid fa-calculator" style="color:var(--primary-color);"></i> <span data-i18n="calc_lot_title">高階基準與手數換算</span></h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; margin-bottom: 15px;" data-i18n="calc_lot_desc">系統將自動獲取最新市價，進行跨品種精密換算。</p>
+                    
+                    <div style="display: flex; gap: 10px; flex-direction: column;">
+                        <label style="font-size:0.75rem;color:var(--text-muted);" data-i18n="calc_from">換算基準物</label>
+                        <select id="conv-from" class="styled-input" style="padding: 12px; background:rgba(0,0,0,0.5);" onchange="updateConvDefaults('from')">
+                            <option value="BTCUSDT" data-lot="1" data-price="68000">比特幣 (BTCUSDT, 1顆=1)</option>
+                            <option value="ETHUSDT" data-lot="1" data-price="3500">以太幣 (ETHUSDT, 1顆=1)</option>
+                            <option value="SOLUSDT" data-lot="1" data-price="145">SOL (SOLUSDT, 1顆=1)</option>
+                            <option value="BNBUSDT" data-lot="1" data-price="590">BNB (BNBUSDT, 1顆=1)</option>
+                            <option value="XRPUSDT" data-lot="1" data-price="0.6">XRP (XRPUSDT, 1顆=1)</option>
+                            <option value="XAUUSD" data-lot="100" data-price="2350">黃金 (XAUUSD, 1手=100盎司)</option>
+                            <option value="XAGUSD" data-lot="5000" data-price="28.5">白銀 (XAGUSD, 1手=5000盎司)</option>
+                            <option value="WTIUSD" data-lot="1000" data-price="82.5">原油 (WTIUSD, 1手=1000桶)</option>
+                            <option value="EURUSD" data-lot="100000" data-price="1.08">歐美 (EURUSD, 1手=10萬量)</option>
+                            <option value="GBPUSD" data-lot="100000" data-price="1.25">鎊美 (GBPUSD, 1手=10萬量)</option>
+                            <option value="USDJPY" data-lot="100000" data-price="155.2">美日 (USDJPY, 1手=10萬量)</option>
+                            <option value="NAS100" data-lot="20" data-price="18000">納斯達克 (NAS100, 1手=20)</option>
+                            <option value="US500" data-lot="10" data-price="5250">標普500 (US500, 1手=10)</option>
+                            <option value="US30" data-lot="10" data-price="39500">道瓊斯 (US30, 1手=10)</option>
+                            <option value="JPN225" data-lot="1000" data-price="39000">日經225 (JPN225, 1手=1000)</option>
+                            <option value="2330" data-lot="1000" data-price="850">台積電 (2330, 1張=1000股)</option>
+                            <option value="2317" data-lot="1000" data-price="175">鴻海 (2317, 1張=1000股)</option>
+                            <option value="2454" data-lot="1000" data-price="1150">聯發科 (2454, 1張=1000股)</option>
+                        </select>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;display:block;" data-i18n="calc_live_price">實時報價</label>
+                                <input type="text" id="conv-from-price" class="styled-input" style="color:var(--primary-color);" readonly>
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;display:block;" data-i18n="calc_qty">持有數量</label>
+                                <input type="number" id="conv-amt" class="styled-input" value="1" oninput="calculateLotConversion()">
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; color: var(--primary-color); margin: 8px 0;"><i class="fa-solid fa-arrow-down-long"></i></div>
+                        
+                        <label style="font-size:0.75rem;color:var(--text-muted);display:block;" data-i18n="calc_to">換算對象物</label>
+                        <select id="conv-to" class="styled-input" style="padding: 12px; background:rgba(0,0,0,0.5);" onchange="updateConvDefaults('to')">
+                            <option value="XAUUSD" data-lot="100" data-price="2350">黃金 (XAUUSD, 1手=100盎司)</option>
+                            <option value="XAGUSD" data-lot="5000" data-price="28.5">白銀 (XAGUSD, 1手=5000盎司)</option>
+                            <option value="WTIUSD" data-lot="1000" data-price="82.5">原油 (WTIUSD, 1手=1000桶)</option>
+                            <option value="BTCUSDT" data-lot="1" data-price="68000">比特幣 (BTCUSDT, 1顆=1)</option>
+                            <option value="ETHUSDT" data-lot="1" data-price="3500">以太幣 (ETHUSDT, 1顆=1)</option>
+                            <option value="SOLUSDT" data-lot="1" data-price="145">SOL (SOLUSDT, 1顆=1)</option>
+                            <option value="BNBUSDT" data-lot="1" data-price="590">BNB (BNBUSDT, 1顆=1)</option>
+                            <option value="XRPUSDT" data-lot="1" data-price="0.6">XRP (XRPUSDT, 1顆=1)</option>
+                            <option value="EURUSD" data-lot="100000" data-price="1.08">歐美 (EURUSD, 1手=10萬量)</option>
+                            <option value="GBPUSD" data-lot="100000" data-price="1.25">鎊美 (GBPUSD, 1手=10萬量)</option>
+                            <option value="USDJPY" data-lot="100000" data-price="155.2">美日 (USDJPY, 1手=10萬量)</option>
+                            <option value="NAS100" data-lot="20" data-price="18000">納斯達克 (NAS100, 1手=20)</option>
+                            <option value="US500" data-lot="10" data-price="5250">標普500 (US500, 1手=10)</option>
+                            <option value="US30" data-lot="10" data-price="39500">道瓊斯 (US30, 1手=10)</option>
+                            <option value="JPN225" data-lot="1000" data-price="39000">日經225 (JPN225, 1手=1000)</option>
+                            <option value="2330" data-lot="1000" data-price="850">台積電 (2330, 1張=1000股)</option>
+                            <option value="2317" data-lot="1000" data-price="175">鴻海 (2317, 1張=1000股)</option>
+                            <option value="2454" data-lot="1000" data-price="1150">聯發科 (2454, 1張=1000股)</option>
+                        </select>
+                        <div>
+                            <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;display:block;" data-i18n="calc_live_price2">實時報價</label>
+                            <input type="text" id="conv-to-price" class="styled-input" style="width:100%; color:var(--primary-color);" readonly>
+                        </div>
+                        
+                        <div class="risk-result" style="display:none; text-align:center; padding: 15px; border: 1px solid var(--primary-color); background: rgba(212,175,55,0.05); border-radius: 8px; margin-top:10px;" id="conv-res-box">
+                            <div style="font-size:0.8rem; color:var(--text-muted);" data-i18n="calc_res">換算結果：</div>
+                            <h4 id="conv-res-text" style="color: var(--primary-color); font-size:1.3rem; margin-top: 5px;"></h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prop Firm Risk -->
+                <div class="card glass-card form-card">
+                    <h3 style="color:#FFF;"><i class="fa-solid fa-shield-halved" style="color:var(--primary-color);"></i> <span data-i18n="risk_title">頂級機構風控算盤</span></h3>
+                    <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; border: 1px solid #333;">
+                        <div><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="risk_capital">實盤總本金</span><div style="font-weight:600; color:var(--primary-color);" id="risk-display-balance">$ 10,000</div></div>
+                        <div><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="risk_limit">單筆極限風險</span><div style="font-weight:600;" id="risk-display-pct">1.0%</div></div>
+                        <div style="text-align:right;"><span style="font-size:0.75rem; color:var(--text-muted);" data-i18n="risk_sl_amt">強制停損額</span><div style="font-weight:600; color:var(--danger-color);" id="risk-display-amt">$ 100</div></div>
+                    </div>
+
+                    <div class="input-group">
+                        <label data-i18n="risk_entry">進場價 (Entry)</label>
+                        <input type="number" id="entryPrice" class="styled-input" style="font-size: 1.1rem; padding:12px;" step="any">
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="risk_sl">止損價 (SL)</label>
+                        <input type="number" id="stopLoss" class="styled-input" style="font-size: 1.1rem; padding:12px;" step="any">
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="risk_lev">部位倍數 (預計開單槓桿)</label>
+                        <input type="number" id="leverage" class="styled-input" value="10">
+                    </div>
+                    <button class="primary-btn" onclick="calculatePropRisk()" data-i18n="btn_calc_risk">核算名義價值與入金</button>
+                    
+                    <div id="riskResult" class="risk-result" style="display: none; margin-top: 25px; border-top: 1px solid #333; padding-top: 20px;">
+                        <h4 style="margin-bottom: 16px; font-weight:400; color:var(--text-muted);"><span data-i18n="risk_dir">交易方向</span>： <strong id="res-direction"></strong></h4>
+                        <div class="result-row"><span data-i18n="risk_res_notional">總名義價值 (Notional)</span><strong id="res-notional" style="color:#FFF; font-size:1.1rem;"></strong></div>
+                        <div class="result-row"><span data-i18n="risk_res_margin">凍結保證金 (Margin)</span><strong id="res-margin" style="color: var(--primary-color); font-size:1.1rem;"></strong></div>
+                        <div class="result-row"><span data-i18n="risk_res_lev">真實帳戶槓桿</span><strong id="res-reallev" style="color:#FFF;"></strong></div>
+                        <div id="leverage-warning" style="display: none; margin-top: 15px; padding: 12px; background: rgba(255,59,48,0.1); border: 1px solid var(--danger-color); border-radius: 8px; font-size: 0.85rem; color: var(--danger-color); line-height: 1.5;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="risk_warn">警告：您的本金無法支撐此級別的風險保證金，請提高開單槓桿以降低佔用資金。</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: PROFILE ================= -->
+            <div id="view-profile" class="view">
+                <div class="section-header" style="justify-content:center;">
+                    <h2 style="color:var(--primary-color); letter-spacing:1px;" data-i18n="title_set">VIP 設定中心</h2>
+                </div>
+                
+                <div class="profile-header card glass-card" style="text-align: center; padding: 40px 20px; margin-bottom: 25px;">
+                    <img id="profile-avatar" src="https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=200&auto=format&fit=crop" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid var(--primary-color); margin-bottom: 20px; box-shadow: 0 0 20px rgba(212,175,55,0.4);">
+                    <h2 id="profile-username" style="font-size: 1.5rem; letter-spacing: 1px;">VIP 訪客</h2>
+                    <div id="google-login-box" style="margin-top: 20px;">
+                        <button class="primary-btn" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--glass-border); font-weight: 500;" onclick="simulateGoogleLogin()">
+                            <i class="fa-brands fa-google" style="color: #fff; margin-right: 8px;"></i> <span data-i18n="btn_login">綁定高階會籍</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card glass-card form-card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 16px; font-size: 1.05rem; color:#FFF;"><i class="fa-solid fa-vault" style="color:var(--primary-color);"></i> <span data-i18n="set_alloc">資產配置參數</span></h3>
+                    
+                    <div class="input-group">
+                        <label data-i18n="set_lang">應用語言 (Language)</label>
+                        <select id="app-language" class="styled-input" style="padding: 12px; background:rgba(0,0,0,0.5);" onchange="changeLanguage(this.value)">
+                            <option value="zh">繁體中文</option>
+                            <option value="en">English (US)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label data-i18n="set_bal">總淨值 (USDT)</label>
+                        <input type="number" id="settingBalance" class="styled-input" style="font-size: 1.2rem;">
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="set_risk">單次最大容忍損耗 (%)</label>
+                        <input type="number" id="settingRiskPct" class="styled-input" step="0.1" style="font-size: 1.2rem;">
+                    </div>
+                    <button class="primary-btn" style="margin-top: 10px;" onclick="saveSettings()" data-i18n="btn_save_set">儲存高階參數</button>
+                </div>
+            </div>
+            
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a class="nav-item active" data-target="view-home"><i class="fa-solid fa-house"></i><span data-i18n="nav_home">大廳</span></a>
+            <a class="nav-item" data-target="view-portfolio"><i class="fa-solid fa-briefcase"></i><span data-i18n="nav_pos">倉位</span></a>
+            <a class="nav-item fab-item" data-target="view-screener">
+                <div class="fab"><i class="fa-solid fa-chart-line"></i></div>
+            </a>
+            <a class="nav-item" data-target="view-risk"><i class="fa-solid fa-scale-balanced"></i><span data-i18n="nav_risk">風控</span></a>
+            <a class="nav-item" data-target="view-profile"><i class="fa-solid fa-gear"></i><span data-i18n="nav_set">設定</span></a>
+        </nav>
+    </div>
+
+    <!-- Modals -->
+    <!-- Journal Add Modal -->
+    <div class="modal-overlay" id="journal-modal">
+        <div class="modal-content card glass-card" style="max-height: 85vh; overflow-y: auto;">
+            <h3 style="margin-bottom: 20px; color:var(--primary-color); text-align:center;" data-i18n="m_j_title">撰寫交易日誌</h3>
+            <div class="input-group">
+                <label data-i18n="m_j_date">開單日期</label>
+                <input type="date" id="j-date" class="styled-input">
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_j_sym">交易標的</label>
+                <input type="text" id="j-symbol" class="styled-input" placeholder="例如: XAUUSD">
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_j_entry">均價 (Entry)</label>
+                <input type="number" id="j-entry" class="styled-input" step="any">
+            </div>
+            <div class="input-group" style="flex-direction: row; gap: 10px;">
+                <div style="flex: 1;"><label data-i18n="m_j_tp">止盈價 (TP)</label><input type="number" id="j-tp" class="styled-input" step="any"></div>
+                <div style="flex: 1;"><label data-i18n="m_j_sl">止損價 (SL)</label><input type="number" id="j-sl" class="styled-input" step="any"></div>
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_j_tags">策略標記</label>
+                <div style="display:flex; gap:15px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #333;">
+                    <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="j-hit-tp" style="transform: scale(1.2);"> <span data-i18n="m_j_tag_tp">最終止盈</span></label>
+                    <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="j-hedged" style="transform: scale(1.2);"> <span data-i18n="m_j_tag_hedge">成功套保</span></label>
+                </div>
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_j_res">開局原由 / 覆盤心得</label>
+                <textarea id="j-reason" class="styled-input" rows="4" placeholder="紀錄市場脈搏..."></textarea>
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_j_img">上傳快照 (Charts)</label>
+                <input type="file" id="j-image" accept="image/*" class="styled-input" style="padding: 10px; background: transparent; border: 1px dashed var(--primary-color);">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button class="primary-btn" style="background: transparent; border: 1px solid #555; color:#ccc;" onclick="document.getElementById('journal-modal').style.display='none'" data-i18n="m_btn_cancel">捨棄</button>
+                <button class="primary-btn" onclick="saveJournalEntry()" data-i18n="m_btn_save">封存日誌</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Position Modal -->
+    <div class="modal-overlay" id="add-position-modal">
+        <div class="modal-content card glass-card">
+            <h3 style="margin-bottom: 20px; color:var(--primary-color); text-align:center;" data-i18n="m_p_title">登錄新倉位紀錄</h3>
+            <div class="input-group">
+                <label data-i18n="m_p_sym">輸入資產代號</label>
+                <input type="text" id="pos-symbol" class="styled-input" placeholder="例如: NASDAQ">
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_p_dir">操盤走向</label>
+                <select id="pos-dir" class="styled-input" style="padding: 12px;">
+                    <option value="1">多頭 (Long)</option>
+                    <option value="-1">空頭 (Short)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_p_entry">進場均價</label>
+                <input type="number" id="pos-entry" class="styled-input" step="any">
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_p_qty">籌碼量 (手/張/顆)</label>
+                <input type="number" id="pos-qty" class="styled-input" step="any">
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_p_cur">當前市價紀錄</label>
+                <input type="number" id="pos-current" class="styled-input" step="any">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button class="primary-btn" style="background: transparent; border: 1px solid #555; color:#ccc;" onclick="document.getElementById('add-position-modal').style.display='none'" data-i18n="m_btn_cancel">取消</button>
+                <button class="primary-btn" onclick="addPosition()" data-i18n="m_p_btn_submit">立契建倉</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
