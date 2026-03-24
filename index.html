@@ -177,6 +177,28 @@
                     <button class="primary-btn-sm" style="border-radius:20px;" onclick="document.getElementById('journal-modal').style.display='flex'">+ <span data-i18n="btn_new_journal">新增紀錄</span></button>
                 </div>
 
+                <!-- Journal Calendar View -->
+                <div class="card glass-card" style="margin-bottom: 20px; padding: 15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="color:#fff; font-size:1.05rem;"><i class="fa-regular fa-calendar-check" style="color:var(--primary-color);"></i> <span data-i18n="cal_title">盈虧日曆 (月)</span></h3>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button class="icon-btn" onclick="changeCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                            <span id="cal-month-display" style="font-weight:600; font-size:0.95rem; color:var(--primary-color);">...</span>
+                            <button class="icon-btn" onclick="changeCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <!-- Days header -->
+                    <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:5px; text-align:center; margin-bottom:5px;">
+                        <div style="font-size:0.75rem; color:var(--danger-color);">日</div><div style="font-size:0.75rem; color:var(--text-muted);">一</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">二</div><div style="font-size:0.75rem; color:var(--text-muted);">三</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">四</div><div style="font-size:0.75rem; color:var(--text-muted);">五</div>
+                        <div style="font-size:0.75rem; color:var(--success-color);">六</div>
+                    </div>
+                    <div id="pnl-calendar-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:5px; text-align:center;">
+                        <!-- Calendar days injected here -->
+                    </div>
+                </div>
+
                 <!-- Journal Stats Dashboard -->
                 <div class="card glass-card" style="margin-bottom:20px; padding:15px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; text-align:center;">
@@ -431,8 +453,9 @@
             </div>
             <div class="input-group">
                 <label data-i18n="m_j_tags">策略標記</label>
-                <div style="display:flex; gap:15px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #333;">
+                <div style="display:flex; gap:15px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #333; flex-wrap:wrap;">
                     <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="j-hit-tp" style="transform: scale(1.2);"> <span data-i18n="m_j_tag_tp">最終止盈</span></label>
+                    <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="j-hit-sl" style="transform: scale(1.2);"> <span data-i18n="m_j_tag_sl">止損出場</span></label>
                     <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="j-hedged" style="transform: scale(1.2);"> <span data-i18n="m_j_tag_hedge">成功套保</span></label>
                 </div>
             </div>

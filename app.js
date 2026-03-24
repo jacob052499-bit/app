@@ -20,7 +20,7 @@ const i18n = {
         equity_real_title: "實盤總資產 (Real)", equity_prop_title: "機構資產 (PropFirm)", atr_title: "ATR 進階加倉計算器", btn_calc_atr: "計算加倉規劃", atr_res_single: "單次加倉", atr_res_total: "總加倉計算",
         stat_winrate: "綜合勝率", stat_pnl: "區間總盈虧", stat_return: "區間報酬率",
         acc_all: "全部帳戶", acc_real: "實盤 (Real)", acc_prop: "機構 (PropFirm)", set_prop_bal: "PropFirm 總淨值 (USDT)",
-        m_j_acc: "帳戶歸屬", m_j_pnl: "實現盈虧 (PnL)", m_j_amt: "下單金額 (Amt)", m_j_lev: "槓桿倍數 (Lev)"
+        m_j_acc: "帳戶歸屬", m_j_pnl: "實現盈虧 (PnL)", m_j_amt: "下單金額 (Amt)", m_j_lev: "槓桿倍數 (Lev)", m_j_tag_sl: "止損出場", cal_title: "盈虧日曆 (月)"
     },
     en: {
         header_greeting: "VIP Trader,", live_feed: "Live Direct Feed",
@@ -42,7 +42,7 @@ const i18n = {
         equity_real_title: "Real Equity", equity_prop_title: "PropFirm Equity", atr_title: "ATR Add Pos Calculator", btn_calc_atr: "Calculate Additions", atr_res_single: "Single Add", atr_res_total: "Total Add",
         stat_winrate: "Win Rate", stat_pnl: "Total PnL", stat_return: "Return %",
         acc_all: "All Accounts", acc_real: "Real Account", acc_prop: "Prop Firm", set_prop_bal: "PropFirm Equity (USDT)",
-        m_j_acc: "Account Type", m_j_pnl: "Realized PnL", m_j_amt: "Position Size", m_j_lev: "Leverage"
+        m_j_acc: "Account Type", m_j_pnl: "Realized PnL", m_j_amt: "Position Size", m_j_lev: "Leverage", m_j_tag_sl: "Hit SL", cal_title: "PnL Calendar"
     }
 };
 
@@ -228,7 +228,6 @@ function openAddPositionModal() {
     document.getElementById('pos-symbol').value = '';
     document.getElementById('pos-entry').value = '';
     document.getElementById('pos-qty').value = '';
-    document.getElementById('pos-current').value = '';
     document.getElementById('add-position-modal').style.display = 'flex';
 }
 
@@ -267,10 +266,76 @@ function deletePosition(id) {
     }
 }
 
-// ====== Trading Journal (v4.0) ======
 function renderJournalList() {
     renderJournalStats();
     renderJournal();
+    renderCalendar();
+}
+
+let currentCalDate = new Date();
+
+function changeCalendarMonth(diff) {
+    currentCalDate.setMonth(currentCalDate.getMonth() + diff);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('pnl-calendar-grid');
+    if(!grid) return;
+    
+    let html = '';
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+    
+    document.getElementById('cal-month-display').innerText = `${year} 年 ${month + 1} 月`;
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const accFilter = document.getElementById('j-acc-filter') ? document.getElementById('j-acc-filter').value : 'all';
+    
+    const dailyPnl = {};
+    userState.journals.forEach(j => {
+        if(accFilter !== 'all' && j.accountType !== accFilter) return;
+        if(j.pnl && !isNaN(parseFloat(j.pnl))) {
+            const dateStr = j.date; // YYYY-MM-DD
+            if(!dailyPnl[dateStr]) dailyPnl[dateStr] = 0;
+            dailyPnl[dateStr] += parseFloat(j.pnl);
+        }
+    });
+    
+    for(let i=0; i<firstDay; i++) {
+        html += `<div></div>`;
+    }
+    
+    const todayStr = new Date().toISOString().slice(0,10);
+    
+    for(let d=1; d<=daysInMonth; d++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const pnl = dailyPnl[dateStr] || 0;
+        let pnlHtml = '';
+        let bg = 'rgba(255,255,255,0.03)';
+        let border = '1px solid transparent';
+        if(pnl > 0) { 
+            pnlHtml = `<div style="color:var(--success-color); font-size:0.75rem; margin-top:2px; font-weight:600;">+${pnl.toFixed(0)}</div>`; 
+            bg = 'rgba(0, 209, 102, 0.1)';
+            border = '1px solid rgba(0, 209, 102, 0.3)';
+        } else if(pnl < 0) {
+            pnlHtml = `<div style="color:var(--danger-color); font-size:0.75rem; margin-top:2px; font-weight:600;">${pnl.toFixed(0)}</div>`;
+            bg = 'rgba(255, 59, 48, 0.1)';
+            border = '1px solid rgba(255, 59, 48, 0.3)';
+        }
+        
+        const isToday = (dateStr === todayStr) ? 'border: 1px solid var(--primary-color);' : '';
+        
+        html += `
+            <div style="background:${bg}; border:${isToday ? isToday : border}; border-radius:6px; padding:6px 2px; min-height:50px; display:flex; flex-direction:column; justify-content:center;">
+                <div style="font-size:0.8rem; font-weight:600;">${d}</div>
+                ${pnlHtml}
+            </div>
+        `;
+    }
+    grid.innerHTML = html;
 }
 
 function renderJournalStats() {
@@ -337,8 +402,9 @@ function renderJournal() {
     list.innerHTML = sorted.map(j => {
         let badges = '';
         if(j.hitTp) badges += `<span class="j-badge" style="background:var(--success-bg); color:var(--success-color);">止盈出場</span>`;
+        if(j.hitSl) badges += `<span class="j-badge" style="background:rgba(255, 59, 48, 0.15); color:var(--danger-color);">止損出場</span>`;
         if(j.hedged) badges += `<span class="j-badge" style="background:rgba(59, 130, 246, 0.15); color:#3b82f6;">套保機制</span>`;
-        if(!j.hitTp && !j.hedged) badges += `<span class="j-badge" style="background:rgba(255,255,255,0.05); color:var(--text-muted);">一般平倉</span>`;
+        if(!j.hitTp && !j.hitSl && !j.hedged) badges += `<span class="j-badge" style="background:rgba(255,255,255,0.05); color:var(--text-muted);">一般平倉</span>`;
         
         let imgHtml = j.image ? `<img src="${j.image}" class="j-preview">` : '';
         
@@ -381,13 +447,14 @@ function saveJournalEntry() {
     const leverage = document.getElementById('j-leverage').value;
     const pnl = document.getElementById('j-pnl').value;
     const hitTp = document.getElementById('j-hit-tp').checked;
+    const hitSl = document.getElementById('j-hit-sl').checked;
     const hedged = document.getElementById('j-hedged').checked;
     const reason = document.getElementById('j-reason').value;
     const fileInput = document.getElementById('j-image');
 
     if(!date || !symbol || !entry) return alert('請至少填寫日期、標的名稱與進場價！');
 
-    const journal = { id: Date.now(), accountType, date, symbol, entry, tp, sl, amount, leverage, pnl, hitTp, hedged, reason, image: null };
+    const journal = { id: Date.now(), accountType, date, symbol, entry, tp, sl, amount, leverage, pnl, hitTp, hitSl, hedged, reason, image: null };
 
     if(fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
@@ -408,7 +475,7 @@ function completeSaveJournal(journal) {
     
     // Clear
     ['j-date','j-symbol','j-entry','j-tp','j-sl','j-amount','j-leverage','j-pnl','j-reason','j-image'].forEach(id => document.getElementById(id).value = '');
-    ['j-hit-tp','j-hedged'].forEach(id => document.getElementById(id).checked = false);
+    ['j-hit-tp','j-hit-sl','j-hedged'].forEach(id => document.getElementById(id).checked = false);
     
     renderJournalList();
     renderPortfolio(); // update portfolio propfirm balance if needed
@@ -523,12 +590,12 @@ function initConverterDefaults() {
 // ====== Export Journals to CSV ======
 function exportJournalsCSV() {
     if(userState.journals.length === 0) return alert("無日誌紀錄可匯出");
-    const header = ["Date", "Account", "Symbol", "Entry", "Amt", "Lev", "TP", "SL", "PnL", "Hit TP", "Hedged", "Reason"];
+    const header = ["Date", "Account", "Symbol", "Entry", "Amt", "Lev", "TP", "SL", "PnL", "Hit TP", "Hit SL", "Hedged", "Reason"];
     const rows = userState.journals.map(j => {
         return [
             j.date, (j.accountType==='prop'?'PropFirm':'Real'), j.symbol, j.entry, j.amount||0, j.leverage||1, j.tp || "N/A", j.sl || "N/A",
             j.pnl || 0,
-            j.hitTp ? "Yes" : "No", j.hedged ? "Yes" : "No",
+            j.hitTp ? "Yes" : "No", j.hitSl ? "Yes" : "No", j.hedged ? "Yes" : "No",
             `"${j.reason ? j.reason.replace(/"/g, '""') : ""}"` // Escape quotes for CSV
         ];
     });
