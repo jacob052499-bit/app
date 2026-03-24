@@ -16,7 +16,11 @@ const i18n = {
         nav_home: "大廳", nav_pos: "倉位", nav_risk: "風控", nav_set: "設定",
         m_j_title: "撰寫交易日誌", m_j_date: "開單日期", m_j_sym: "交易標的", m_j_entry: "均價 (Entry)", m_j_tp: "止盈價 (TP)", m_j_sl: "止損價 (SL)", m_j_tags: "策略標記", m_j_tag_tp: "最終止盈", m_j_tag_hedge: "成功套保", m_j_res: "開局原由 / 覆盤心得", m_j_img: "上傳快照 (Charts)", m_btn_cancel: "捨棄", m_btn_save: "封存日誌",
         m_p_title: "登錄新倉位紀錄", m_p_sym: "輸入資產代號", m_p_dir: "操盤走向", m_p_entry: "進場均價", m_p_qty: "籌碼量 (手/張/顆)", m_p_cur: "當前市價紀錄", m_p_btn_submit: "立契建倉",
-        js_long: "多頭 (Long)", js_short: "空頭 (Short)", js_eqqty: "等效為"
+        js_long: "多頭 (Long)", js_short: "空頭 (Short)", js_eqqty: "等效為",
+        equity_real_title: "實盤總資產 (Real)", equity_prop_title: "機構資產 (PropFirm)", atr_title: "ATR 進階加倉計算器", btn_calc_atr: "計算加倉規劃", atr_res_single: "單次加倉", atr_res_total: "總加倉計算",
+        stat_winrate: "綜合勝率", stat_pnl: "區間總盈虧", stat_return: "區間報酬率",
+        acc_all: "全部帳戶", acc_real: "實盤 (Real)", acc_prop: "機構 (PropFirm)", set_prop_bal: "PropFirm 總淨值 (USDT)",
+        m_j_acc: "帳戶歸屬", m_j_pnl: "實現盈虧 (PnL)", m_j_amt: "下單金額 (Amt)", m_j_lev: "槓桿倍數 (Lev)"
     },
     en: {
         header_greeting: "VIP Trader,", live_feed: "Live Direct Feed",
@@ -34,19 +38,24 @@ const i18n = {
         nav_home: "Lobby", nav_pos: "Positions", nav_risk: "Risk", nav_set: "Configure",
         m_j_title: "Draft Journal", m_j_date: "Date", m_j_sym: "Symbol", m_j_entry: "Entry", m_j_tp: "Take Profit", m_j_sl: "Stop Loss", m_j_tags: "Strategy Tags", m_j_tag_tp: "Hit TP", m_j_tag_hedge: "Hedged", m_j_res: "Reason / Review", m_j_img: "Attach Chart", m_btn_cancel: "Discard", m_btn_save: "Archive",
         m_p_title: "Log New Position", m_p_sym: "Symbol", m_p_dir: "Direction", m_p_entry: "Entry", m_p_qty: "Size/Qty", m_p_cur: "Current Price", m_p_btn_submit: "Open Contract",
-        js_long: "Long", js_short: "Short", js_eqqty: "Equivalency"
+        js_long: "Long", js_short: "Short", js_eqqty: "Equivalency",
+        equity_real_title: "Real Equity", equity_prop_title: "PropFirm Equity", atr_title: "ATR Add Pos Calculator", btn_calc_atr: "Calculate Additions", atr_res_single: "Single Add", atr_res_total: "Total Add",
+        stat_winrate: "Win Rate", stat_pnl: "Total PnL", stat_return: "Return %",
+        acc_all: "All Accounts", acc_real: "Real Account", acc_prop: "Prop Firm", set_prop_bal: "PropFirm Equity (USDT)",
+        m_j_acc: "Account Type", m_j_pnl: "Realized PnL", m_j_amt: "Position Size", m_j_lev: "Leverage"
     }
 };
 
 // ====== State Management ======
 let userState = {
     balance: 10000,
+    propBalance: 100000,
     riskPct: 1,
     isLoggedIn: false,
     username: "VIP 訪客",
     avatar: "https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=200&auto=format&fit=crop",
     positions: [],     // {id, symbol, dir, entry, qty, currentPrice}
-    journals: [],      // {id, date, symbol, entry, tp, sl, hitTp, hedged, reason, img}
+    journals: [],      // {id, date, symbol, accountType, entry, pnl, amount, leverage, tp, sl, hitTp, hedged, reason, img}
     lang: "zh"
 };
 
@@ -70,7 +79,10 @@ function loadSettings() {
     if(!userState.positions) userState.positions = [];
     if(!userState.lang) userState.lang = 'zh';
     
+    if(!userState.propBalance) userState.propBalance = 100000;
+    
     document.getElementById('settingBalance').value = userState.balance;
+    document.getElementById('settingPropBalance').value = userState.propBalance;
     document.getElementById('settingRiskPct').value = userState.riskPct;
     
     updateProfileUI();
@@ -98,6 +110,7 @@ function changeLanguage(lang, doSave = true) {
 
 function saveSettings() {
     userState.balance = parseFloat(document.getElementById('settingBalance').value) || 10000;
+    userState.propBalance = parseFloat(document.getElementById('settingPropBalance').value) || 100000;
     userState.riskPct = parseFloat(document.getElementById('settingRiskPct').value) || 1;
     saveState();
     
@@ -190,6 +203,25 @@ function renderPortfolio() {
             pnlElem.innerHTML = `<i class="fa-solid fa-arrow-trend-${totalPnl >= 0 ? 'up' : 'down'}"></i><span>${totalPnl >= 0 ? '+' : '-'}$${formatMoney(MathAbsPnl)} (${totalPnl >= 0 ? '+' : ''}${pct.toFixed(2)}%)</span>`;
         }
     }
+
+    const propBalanceElem = document.getElementById('home-prop-balance');
+    const propPnlElem = document.getElementById('home-prop-pnl');
+    if(propBalanceElem) {
+        // Calculate PropFirm PnL from journals (since positions are mainly general/real in original flow)
+        let propPnl = 0;
+        userState.journals.forEach(j => {
+            if(j.accountType === 'prop' && j.pnl) propPnl += parseFloat(j.pnl);
+        });
+        const currentPropEq = userState.propBalance + propPnl;
+        propBalanceElem.innerText = `$ ${formatMoney(currentPropEq)}`;
+        
+        if(propPnlElem && userState.propBalance > 0) {
+            const pct = (propPnl / userState.propBalance) * 100;
+            const MathAbsPnl = Math.abs(propPnl);
+            propPnlElem.className = `pnl ${propPnl >= 0 ? 'positive' : 'negative'}`;
+            propPnlElem.innerHTML = `<i class="fa-solid fa-arrow-trend-${propPnl >= 0 ? 'up' : 'down'}"></i><span>${propPnl >= 0 ? '+' : '-'}$${formatMoney(MathAbsPnl)} (${propPnl >= 0 ? '+' : ''}${pct.toFixed(2)}%)</span>`;
+        }
+    }
 }
 
 function openAddPositionModal() {
@@ -200,17 +232,17 @@ function openAddPositionModal() {
     document.getElementById('add-position-modal').style.display = 'flex';
 }
 
-function addPosition() {
+async function addPosition() {
     const sym = document.getElementById('pos-symbol').value.trim();
     const dir = parseInt(document.getElementById('pos-dir').value);
     const entry = parseFloat(document.getElementById('pos-entry').value);
     const qty = parseFloat(document.getElementById('pos-qty').value);
-    let curr = parseFloat(document.getElementById('pos-current').value);
     
     if(!sym || !entry || !qty) return alert('請輸入完整數值與標的名稱');
-    if(!curr) curr = entry; // default current to entry
     
-    userState.positions.push({ id: Date.now().toString(), symbol: sym, dir: dir, entry: entry, qty: qty, currentPrice: curr });
+    let curr = await fetchRealPrice(sym.toUpperCase(), entry);
+    
+    userState.positions.push({ id: Date.now().toString(), symbol: sym.toUpperCase(), dir: dir, entry: entry, qty: qty, currentPrice: curr });
     saveState();
     document.getElementById('add-position-modal').style.display = 'none';
     renderPortfolio();
@@ -236,6 +268,48 @@ function deletePosition(id) {
 }
 
 // ====== Trading Journal (v4.0) ======
+function renderJournalList() {
+    renderJournalStats();
+    renderJournal();
+}
+
+function renderJournalStats() {
+    const accFilter = document.getElementById('j-acc-filter') ? document.getElementById('j-acc-filter').value : 'all';
+    const timeFilter = document.getElementById('j-filter') ? document.getElementById('j-filter').value : 'all';
+    
+    let filtered = userState.journals.filter(j => {
+        if(accFilter !== 'all' && j.accountType !== accFilter) return false;
+        if(timeFilter !== 'all') {
+            const days = parseInt(timeFilter);
+            const limit = new Date();
+            limit.setDate(limit.getDate() - days);
+            if(new Date(j.date) < limit) return false;
+        }
+        return true;
+    });
+    
+    let wins = 0;
+    let totalPnl = 0;
+    
+    filtered.forEach(j => {
+        let p = parseFloat(j.pnl);
+        if(!isNaN(p)) {
+            totalPnl += p;
+            if(p > 0) wins++;
+        }
+    });
+    
+    const winRate = filtered.length > 0 ? ((wins / filtered.length) * 100).toFixed(1) : 0;
+    const baseTarget = accFilter === 'prop' ? userState.propBalance : userState.balance;
+    const returnPct = baseTarget > 0 ? ((totalPnl / baseTarget) * 100).toFixed(2) : 0;
+    
+    document.getElementById('stat-winrate').innerText = `${winRate}%`;
+    document.getElementById('stat-pnl').innerText = `${totalPnl >= 0 ? '+' : ''}$ ${formatMoney(Math.abs(totalPnl))}`;
+    document.getElementById('stat-pnl').style.color = totalPnl >= 0 ? "var(--success-color)" : "var(--danger-color)";
+    document.getElementById('stat-return').innerText = `${returnPct >= 0 ? '+' : ''}${returnPct}%`;
+    document.getElementById('stat-return').style.color = returnPct >= 0 ? "var(--success-color)" : "var(--danger-color)";
+}
+
 function renderJournal() {
     const list = document.getElementById('journal-list');
     if(!list) return;
@@ -244,8 +318,22 @@ function renderJournal() {
         list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">目前無日誌紀錄，點擊上方按鈕新增。</div>`;
         return;
     }
+    
+    const accFilter = document.getElementById('j-acc-filter') ? document.getElementById('j-acc-filter').value : 'all';
+    const timeFilter = document.getElementById('j-filter') ? document.getElementById('j-filter').value : 'all';
+    
+    let filtered = userState.journals.filter(j => {
+        if(accFilter !== 'all' && j.accountType !== accFilter) return false;
+        if(timeFilter !== 'all') {
+            const days = parseInt(timeFilter);
+            const limit = new Date();
+            limit.setDate(limit.getDate() - days);
+            if(new Date(j.date) < limit) return false;
+        }
+        return true;
+    });
 
-    const sorted = [...userState.journals].sort((a,b) => b.id - a.id);
+    const sorted = [...filtered].sort((a,b) => b.id - a.id);
     list.innerHTML = sorted.map(j => {
         let badges = '';
         if(j.hitTp) badges += `<span class="j-badge" style="background:var(--success-bg); color:var(--success-color);">止盈出場</span>`;
@@ -254,11 +342,13 @@ function renderJournal() {
         
         let imgHtml = j.image ? `<img src="${j.image}" class="j-preview">` : '';
         
+        let pnlColor = (j.pnl && parseFloat(j.pnl) >= 0) ? 'var(--success-color)' : 'var(--danger-color)';
+        
         return `
             <div class="card glass-card journal-card" id="journal-${j.id}">
                 <div style="display:flex; justify-content: space-between; align-items:flex-start;">
                     <div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${j.date}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${j.date} | ${j.accountType === 'prop' ? '機構 (PropFirm)' : '實盤 (Real)'}</div>
                         <h3 style="font-size:1.1rem; margin-bottom: 8px; font-weight:700;">${j.symbol}</h3>
                     </div>
                     <button onclick="deleteJournal('${j.id}')" style="background:none; border:none; color:var(--danger-color); cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
@@ -266,10 +356,11 @@ function renderJournal() {
                 
                 <div style="margin-bottom: 15px;">${badges}</div>
                 
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; font-size:0.8rem; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; margin-bottom:12px;">
-                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">進場</span><strong style="font-size:0.95rem;">${j.entry}</strong></div>
-                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">止盈</span><strong style="color:var(--success-color); font-size:0.95rem;">${j.tp||'無'}</strong></div>
-                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">止損</span><strong style="color:var(--danger-color); font-size:0.95rem;">${j.sl||'無'}</strong></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:0.8rem; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; margin-bottom:12px;">
+                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">進場 / 槓桿</span><strong style="font-size:0.95rem;">${j.entry} (${j.leverage||1}x)</strong></div>
+                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">下單金額</span><strong style="font-size:0.95rem;">$${j.amount||0}</strong></div>
+                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">止盈 / 止損</span><strong style="font-size:0.95rem; color:var(--text-muted);">${j.tp||'-'} / ${j.sl||'-'}</strong></div>
+                    <div><span style="color:var(--text-muted); display:block; margin-bottom:4px;">實現盈虧</span><strong style="color:${pnlColor}; font-size:1.05rem;">$${j.pnl||0}</strong></div>
                 </div>
                 
                 <p style="font-size:0.85rem; line-height:1.6; color:#d1d5db; white-space:pre-wrap; border-left: 3px solid var(--primary-color); padding-left: 10px;">${j.reason}</p>
@@ -281,10 +372,14 @@ function renderJournal() {
 
 function saveJournalEntry() {
     const date = document.getElementById('j-date').value;
+    const accountType = document.getElementById('j-account').value;
     const symbol = document.getElementById('j-symbol').value.toUpperCase();
     const entry = document.getElementById('j-entry').value;
     const tp = document.getElementById('j-tp').value;
     const sl = document.getElementById('j-sl').value;
+    const amount = document.getElementById('j-amount').value;
+    const leverage = document.getElementById('j-leverage').value;
+    const pnl = document.getElementById('j-pnl').value;
     const hitTp = document.getElementById('j-hit-tp').checked;
     const hedged = document.getElementById('j-hedged').checked;
     const reason = document.getElementById('j-reason').value;
@@ -292,7 +387,7 @@ function saveJournalEntry() {
 
     if(!date || !symbol || !entry) return alert('請至少填寫日期、標的名稱與進場價！');
 
-    const journal = { id: Date.now(), date, symbol, entry, tp, sl, hitTp, hedged, reason, image: null };
+    const journal = { id: Date.now(), accountType, date, symbol, entry, tp, sl, amount, leverage, pnl, hitTp, hedged, reason, image: null };
 
     if(fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
@@ -312,10 +407,11 @@ function completeSaveJournal(journal) {
         document.getElementById('journal-modal').style.display = 'none';
     
     // Clear
-    ['j-date','j-symbol','j-entry','j-tp','j-sl','j-reason','j-image'].forEach(id => document.getElementById(id).value = '');
+    ['j-date','j-symbol','j-entry','j-tp','j-sl','j-amount','j-leverage','j-pnl','j-reason','j-image'].forEach(id => document.getElementById(id).value = '');
     ['j-hit-tp','j-hedged'].forEach(id => document.getElementById(id).checked = false);
     
-    renderJournal();
+    renderJournalList();
+    renderPortfolio(); // update portfolio propfirm balance if needed
     alert('交易日誌已儲存！');
 }
 
@@ -323,7 +419,8 @@ function deleteJournal(id) {
     if(confirm('確定要永久刪除此日誌？')) {
         userState.journals = userState.journals.filter(j => j.id.toString() !== id.toString());
         saveState();
-        renderJournal();
+        renderJournalList();
+        renderPortfolio();
     }
 }
 
@@ -426,10 +523,11 @@ function initConverterDefaults() {
 // ====== Export Journals to CSV ======
 function exportJournalsCSV() {
     if(userState.journals.length === 0) return alert("無日誌紀錄可匯出");
-    const header = ["Date", "Symbol", "Direction", "Entry", "TP", "SL", "Hit TP", "Hedged", "Reason"];
+    const header = ["Date", "Account", "Symbol", "Entry", "Amt", "Lev", "TP", "SL", "PnL", "Hit TP", "Hedged", "Reason"];
     const rows = userState.journals.map(j => {
         return [
-            j.date, j.symbol, "General", j.entry, j.tp || "N/A", j.sl || "N/A",
+            j.date, (j.accountType==='prop'?'PropFirm':'Real'), j.symbol, j.entry, j.amount||0, j.leverage||1, j.tp || "N/A", j.sl || "N/A",
+            j.pnl || 0,
             j.hitTp ? "Yes" : "No", j.hedged ? "Yes" : "No",
             `"${j.reason ? j.reason.replace(/"/g, '""') : ""}"` // Escape quotes for CSV
         ];
@@ -443,6 +541,24 @@ function exportJournalsCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// ====== ATR Calculator ======
+function calculateATR() {
+    const atrVal = parseFloat(document.getElementById('atr-value').value);
+    const atrMulti = parseFloat(document.getElementById('atr-multi').value);
+    const atrTimes = parseInt(document.getElementById('atr-times').value);
+    
+    if(!atrVal || !atrMulti || !atrTimes || atrVal <= 0 || atrMulti <= 0 || atrTimes <= 0) {
+        return alert("請填寫正確的 ATR 值、倍數與次數。");
+    }
+    
+    const singleAdd = atrVal * atrMulti;
+    const totalAdd = singleAdd * atrTimes;
+    
+    document.getElementById('atr-result').style.display = 'block';
+    document.getElementById('atr-res-single').innerText = singleAdd.toFixed(2);
+    document.getElementById('atr-res-total').innerText = totalAdd.toFixed(2);
 }
 
 // ====== Home Asset Categories ======

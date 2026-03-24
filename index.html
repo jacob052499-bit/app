@@ -57,13 +57,23 @@
                     <div class="portfolio-header">
                         <h2 style="color: var(--primary-color);" data-i18n="equity_title">帳戶總資產 (Equity)</h2>
                     </div>
-                    <div class="balance-container">
-                        <h1 class="balance" id="home-balance">$ 0.00</h1>
-                        <div class="pnl positive" id="home-floating-pnl">
-                            <i class="fa-solid fa-arrow-trend-up"></i>
-                            <span>+$ 0.00 (0.00%)</span>
+                    <div class="balance-container" style="display:flex; justify-content:space-between; gap:20px; align-items: flex-end;">
+                        <div style="flex:1;">
+                            <span class="pnl-period" style="display:block; margin-bottom: 5px;" data-i18n="equity_real_title">實盤總資產 (Real)</span>
+                            <h1 class="balance" id="home-balance" style="font-size: 2.2rem; margin-bottom:5px;">$ 0.00</h1>
+                            <div class="pnl positive" id="home-floating-pnl" style="padding: 4px 8px; font-size: 0.75rem;">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                <span>+$ 0.00 (0.00%)</span>
+                            </div>
                         </div>
-                        <span class="pnl-period" data-i18n="float_pnl">浮動綜合損益</span>
+                        <div style="flex:1; padding-left:15px; border-left: 1px solid rgba(255,255,255,0.1);">
+                            <span class="pnl-period" style="display:block; margin-bottom: 5px; color:var(--primary-color);" data-i18n="equity_prop_title">機構資產 (PropFirm)</span>
+                            <h1 class="balance" id="home-prop-balance" style="font-size: 2.2rem; margin-bottom:5px; color:var(--primary-color);">$ 0.00</h1>
+                            <div class="pnl" id="home-prop-pnl" style="padding: 4px 8px; font-size: 0.75rem; background:rgba(255,255,255,0.05); color:#aaa;">
+                                <i class="fa-solid fa-minus"></i>
+                                <span>$ 0.00 (0.00%)</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <div style="margin-top:24px; text-align:center;">
@@ -103,6 +113,34 @@
                         <!-- JS Dynamically rendered -->
                     </div>
                 </section>
+
+                <!-- ATR Add Position Calculator -->
+                <section class="card glass-card form-card" style="margin-top: 20px;">
+                    <h3 style="color:#FFF; font-size:1.1rem; margin-bottom:12px;"><i class="fa-solid fa-layer-group" style="color:var(--primary-color);"></i> <span data-i18n="atr_title">ATR 進階加倉計算器</span></h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="atr-symbol" class="styled-input" style="flex:1; padding:10px; font-size:0.9rem;" placeholder="標的物 (如 XAUUSD)" data-i18n-ph="atr_sym">
+                        <input type="number" id="atr-value" class="styled-input" style="flex:1; padding:10px; font-size:0.9rem;" placeholder="當前 ATR 值" data-i18n-ph="atr_val">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="number" id="atr-multi" class="styled-input" style="flex:1; padding:10px; font-size:0.9rem;" step="0.1" placeholder="ATR 倍數 (如 0.6)" data-i18n-ph="atr_multi">
+                        <input type="number" id="atr-times" class="styled-input" style="flex:1; padding:10px; font-size:0.9rem;" placeholder="加倉次數 (如 3)" data-i18n-ph="atr_times">
+                    </div>
+                    <button class="primary-btn-sm" style="width:100%; font-size:0.95rem; padding:12px;" onclick="calculateATR()" data-i18n="btn_calc_atr">計算加倉規劃</button>
+                    
+                    <div id="atr-result" style="display:none; margin-top:20px; padding:15px; background:rgba(212,175,55,0.05); border:1px solid var(--primary-color); border-radius:10px; text-align:center;">
+                        <div style="display:flex; justify-content:space-around; align-items:center;">
+                            <div>
+                                <div style="font-size:0.75rem; color:var(--text-muted);" data-i18n="atr_res_single">單次加倉距離/金額</div>
+                                <div id="atr-res-single" style="font-size:1.4rem; font-weight:600; color:#FFF; margin-top:5px;">0.00</div>
+                            </div>
+                            <div style="width:1px; height:40px; background:rgba(255,255,255,0.1);"></div>
+                            <div>
+                                <div style="font-size:0.75rem; color:var(--text-muted);" data-i18n="atr_res_total">總加倉距離/金額</div>
+                                <div id="atr-res-total" style="font-size:1.4rem; font-weight:600; color:var(--primary-color); margin-top:5px;">0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <!-- ================= VIEW: PORTFOLIO ================= -->
@@ -138,9 +176,34 @@
                     <h2 style="color:var(--primary-color);" data-i18n="title_journal">交易日誌</h2>
                     <button class="primary-btn-sm" style="border-radius:20px;" onclick="document.getElementById('journal-modal').style.display='flex'">+ <span data-i18n="btn_new_journal">新增紀錄</span></button>
                 </div>
+
+                <!-- Journal Stats Dashboard -->
+                <div class="card glass-card" style="margin-bottom:20px; padding:15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; text-align:center;">
+                        <div style="flex:1;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:5px;" data-i18n="stat_winrate">綜合勝率</div>
+                            <div id="stat-winrate" style="font-size:1.3rem; font-weight:600; color:var(--primary-color);">0.0%</div>
+                        </div>
+                        <div style="width:1px; height:30px; background:rgba(255,255,255,0.1);"></div>
+                        <div style="flex:1;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:5px;" data-i18n="stat_pnl">區間總盈虧</div>
+                            <div id="stat-pnl" style="font-size:1.3rem; font-weight:600; color:#FFF;">$ 0.00</div>
+                        </div>
+                        <div style="width:1px; height:30px; background:rgba(255,255,255,0.1);"></div>
+                        <div style="flex:1;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:5px;" data-i18n="stat_return">區間報酬率</div>
+                            <div id="stat-return" style="font-size:1.3rem; font-weight:600; color:var(--success-color);">+0.00%</div>
+                        </div>
+                    </div>
+                </div>
                 
-                <div style="display:flex; justify-content:space-between; margin-bottom: 15px;">
-                    <select id="j-filter" class="styled-input" style="padding: 8px; width: 140px; font-size:0.85rem;" onchange="renderJournalList()">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 15px; gap:8px;">
+                    <select id="j-acc-filter" class="styled-input" style="padding: 8px; flex:1; font-size:0.85rem;" onchange="renderJournalList()">
+                        <option value="all" data-i18n="acc_all">全部帳戶</option>
+                        <option value="real" data-i18n="acc_real">實盤 (Real)</option>
+                        <option value="prop" data-i18n="acc_prop">機構 (PropFirm)</option>
+                    </select>
+                    <select id="j-filter" class="styled-input" style="padding: 8px; flex:1; font-size:0.85rem;" onchange="renderJournalList()">
                         <option value="all" data-i18n="filter_all">全部 (All)</option>
                         <option value="7" data-i18n="filter_7d">近 7 天</option>
                         <option value="30" data-i18n="filter_30d">近 30 天</option>
@@ -299,8 +362,12 @@
                     </div>
 
                     <div class="input-group">
-                        <label data-i18n="set_bal">總淨值 (USDT)</label>
-                        <input type="number" id="settingBalance" class="styled-input" style="font-size: 1.2rem;">
+                        <label data-i18n="set_bal">實盤總淨值 (USDT)</label>
+                        <input type="number" id="settingBalance" class="styled-input" style="font-size: 1.1rem;">
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="set_prop_bal">PropFirm 總淨值 (USDT)</label>
+                        <input type="number" id="settingPropBalance" class="styled-input" style="font-size: 1.1rem; border-color:var(--primary-color);">
                     </div>
                     <div class="input-group">
                         <label data-i18n="set_risk">單次最大容忍損耗 (%)</label>
@@ -329,9 +396,18 @@
     <div class="modal-overlay" id="journal-modal">
         <div class="modal-content card glass-card" style="max-height: 85vh; overflow-y: auto;">
             <h3 style="margin-bottom: 20px; color:var(--primary-color); text-align:center;" data-i18n="m_j_title">撰寫交易日誌</h3>
-            <div class="input-group">
-                <label data-i18n="m_j_date">開單日期</label>
-                <input type="date" id="j-date" class="styled-input">
+            <div class="input-group" style="flex-direction: row; gap: 10px;">
+                <div style="flex: 1;">
+                    <label data-i18n="m_j_date">開單日期</label>
+                    <input type="date" id="j-date" class="styled-input">
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="m_j_acc">帳戶歸屬</label>
+                    <select id="j-account" class="styled-input" style="padding:12px;">
+                        <option value="real" data-i18n="acc_real">實盤 (Real)</option>
+                        <option value="prop" data-i18n="acc_prop">機構 (PropFirm)</option>
+                    </select>
+                </div>
             </div>
             <div class="input-group">
                 <label data-i18n="m_j_sym">交易標的</label>
@@ -345,6 +421,14 @@
                 <div style="flex: 1;"><label data-i18n="m_j_tp">止盈價 (TP)</label><input type="number" id="j-tp" class="styled-input" step="any"></div>
                 <div style="flex: 1;"><label data-i18n="m_j_sl">止損價 (SL)</label><input type="number" id="j-sl" class="styled-input" step="any"></div>
             </div>
+            <div class="input-group" style="flex-direction: row; gap: 10px;">
+                <div style="flex: 1;"><label data-i18n="m_j_amt">下單金額 (Amt)</label><input type="number" id="j-amount" class="styled-input" step="any" placeholder="例如: 500"></div>
+                <div style="flex: 1;"><label data-i18n="m_j_lev">槓桿倍數 (Lev)</label><input type="number" id="j-leverage" class="styled-input" step="any" placeholder="例如: 50"></div>
+            </div>
+            <div class="input-group">
+                <label data-i18n="m_j_pnl">實現盈虧 (PnL)</label>
+                <input type="number" id="j-pnl" class="styled-input" step="any" placeholder="例如: 150.5">
+            </div>
             <div class="input-group">
                 <label data-i18n="m_j_tags">策略標記</label>
                 <div style="display:flex; gap:15px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #333;">
@@ -353,8 +437,8 @@
                 </div>
             </div>
             <div class="input-group">
-                <label data-i18n="m_j_res">開局原由 / 覆盤心得</label>
-                <textarea id="j-reason" class="styled-input" rows="4" placeholder="紀錄市場脈搏..."></textarea>
+                <label data-i18n="m_j_res">開單原因 / 覆盤心得</label>
+                <textarea id="j-reason" class="styled-input" rows="4" placeholder="紀錄開單邏輯與市場脈搏..."></textarea>
             </div>
             <div class="input-group">
                 <label data-i18n="m_j_img">上傳快照 (Charts)</label>
@@ -391,8 +475,8 @@
                 <input type="number" id="pos-qty" class="styled-input" step="any">
             </div>
             <div class="input-group">
-                <label data-i18n="m_p_cur">當前市價紀錄</label>
-                <input type="number" id="pos-current" class="styled-input" step="any">
+                <label data-i18n="m_p_cur" style="color:var(--primary-color);"><i class="fa-solid fa-bolt"></i> 市價獲取機制</label>
+                <div style="font-size:0.8rem; color:var(--text-muted); padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">系統將於建倉時自動獲取最新市場報價進行盈虧結算。</div>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 25px;">
                 <button class="primary-btn" style="background: transparent; border: 1px solid #555; color:#ccc;" onclick="document.getElementById('add-position-modal').style.display='none'" data-i18n="m_btn_cancel">取消</button>
