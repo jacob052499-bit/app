@@ -410,12 +410,16 @@ function renderJournal() {
         
         let pnlColor = (j.pnl && parseFloat(j.pnl) >= 0) ? 'var(--success-color)' : 'var(--danger-color)';
         
+        let dirBadge = j.dir === -1 
+            ? `<span style="font-size:0.75rem; padding: 2px 6px; border-radius: 4px; background:var(--danger-color); color:white; margin-left:8px;">空頭 (Short)</span>` 
+            : `<span style="font-size:0.75rem; padding: 2px 6px; border-radius: 4px; background:var(--success-color); color:white; margin-left:8px;">多頭 (Long)</span>`;
+            
         return `
             <div class="card glass-card journal-card" id="journal-${j.id}">
                 <div style="display:flex; justify-content: space-between; align-items:flex-start;">
                     <div>
                         <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${j.date} | ${j.accountType === 'prop' ? '機構 (PropFirm)' : '實盤 (Real)'}</div>
-                        <h3 style="font-size:1.1rem; margin-bottom: 8px; font-weight:700;">${j.symbol}</h3>
+                        <h3 style="font-size:1.1rem; margin-bottom: 8px; font-weight:700; display:flex; align-items:center;">${j.symbol} ${j.dir!==undefined ? dirBadge : ''}</h3>
                     </div>
                     <button onclick="deleteJournal('${j.id}')" style="background:none; border:none; color:var(--danger-color); cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
@@ -440,6 +444,7 @@ function saveJournalEntry() {
     const date = document.getElementById('j-date').value;
     const accountType = document.getElementById('j-account').value;
     const symbol = document.getElementById('j-symbol').value.toUpperCase();
+    const dir = parseInt(document.getElementById('j-dir').value) || 1;
     const entry = document.getElementById('j-entry').value;
     const tp = document.getElementById('j-tp').value;
     const sl = document.getElementById('j-sl').value;
@@ -454,13 +459,28 @@ function saveJournalEntry() {
 
     if(!date || !symbol || !entry) return alert('請至少填寫日期、標的名稱與進場價！');
 
-    const journal = { id: Date.now(), accountType, date, symbol, entry, tp, sl, amount, leverage, pnl, hitTp, hitSl, hedged, reason, image: null };
+    const journal = { id: Date.now(), accountType, date, symbol, dir, entry, tp, sl, amount, leverage, pnl, hitTp, hitSl, hedged, reason, image: null };
 
     if(fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            journal.image = e.target.result;
-            completeSaveJournal(journal);
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+                if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+                else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                journal.image = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality JPEG
+                completeSaveJournal(journal);
+            };
+            img.src = e.target.result;
         };
         reader.readAsDataURL(fileInput.files[0]);
     } else {
@@ -476,6 +496,7 @@ function completeSaveJournal(journal) {
     // Clear
     ['j-date','j-symbol','j-entry','j-tp','j-sl','j-amount','j-leverage','j-pnl','j-reason','j-image'].forEach(id => document.getElementById(id).value = '');
     ['j-hit-tp','j-hit-sl','j-hedged'].forEach(id => document.getElementById(id).checked = false);
+    document.getElementById('j-dir').value = '1';
     
     renderJournalList();
     renderPortfolio(); // update portfolio propfirm balance if needed
@@ -590,10 +611,10 @@ function initConverterDefaults() {
 // ====== Export Journals to CSV ======
 function exportJournalsCSV() {
     if(userState.journals.length === 0) return alert("無日誌紀錄可匯出");
-    const header = ["Date", "Account", "Symbol", "Entry", "Amt", "Lev", "TP", "SL", "PnL", "Hit TP", "Hit SL", "Hedged", "Reason"];
+    const header = ["Date", "Account", "Symbol", "Direction", "Entry", "Amt", "Lev", "TP", "SL", "PnL", "Hit TP", "Hit SL", "Hedged", "Reason"];
     const rows = userState.journals.map(j => {
         return [
-            j.date, (j.accountType==='prop'?'PropFirm':'Real'), j.symbol, j.entry, j.amount||0, j.leverage||1, j.tp || "N/A", j.sl || "N/A",
+            j.date, (j.accountType==='prop'?'PropFirm':'Real'), j.symbol, (j.dir === -1 ? 'Short' : 'Long'), j.entry, j.amount||0, j.leverage||1, j.tp || "N/A", j.sl || "N/A",
             j.pnl || 0,
             j.hitTp ? "Yes" : "No", j.hitSl ? "Yes" : "No", j.hedged ? "Yes" : "No",
             `"${j.reason ? j.reason.replace(/"/g, '""') : ""}"` // Escape quotes for CSV

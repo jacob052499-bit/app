@@ -431,9 +431,18 @@
                     </select>
                 </div>
             </div>
-            <div class="input-group">
-                <label data-i18n="m_j_sym">交易標的</label>
-                <input type="text" id="j-symbol" class="styled-input" placeholder="例如: XAUUSD">
+            <div class="input-group" style="flex-direction: row; gap: 10px;">
+                <div style="flex: 1;">
+                    <label data-i18n="m_j_sym">交易標的</label>
+                    <input type="text" id="j-symbol" class="styled-input" placeholder="例如: XAUUSD">
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="m_p_dir">操盤走向</label>
+                    <select id="j-dir" class="styled-input" style="padding:12px;">
+                        <option value="1" data-i18n="js_long">多頭 (Long)</option>
+                        <option value="-1" data-i18n="js_short">空頭 (Short)</option>
+                    </select>
+                </div>
             </div>
             <div class="input-group">
                 <label data-i18n="m_j_entry">均價 (Entry)</label>
